@@ -2,9 +2,10 @@ import streamlit as st
 import tempfile, os
 from ingest import ingest_pdf
 from rag import build_rag_chain
+from langchain_core.messages import HumanMessage, AIMessage
 
-st.set_page_config(page_title="AI Study Buddy", page_icon="📚")
-st.title("📚 AI Study Buddy")
+st.set_page_config(page_title="Lumore", page_icon="🌙")
+st.title("🌙 Lumora")
 st.caption("Upload your notes → ask anything")
 
 # ── Sidebar: PDF upload ───────────────────────────────────────
@@ -29,6 +30,8 @@ if "chain" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
 if st.session_state.get("ingested") and st.session_state["chain"] is None:
     with st.spinner("Loading RAG chain..."):
@@ -54,7 +57,14 @@ if query := st.chat_input("Ask something about your notes..."):
             with st.spinner("Thinking..."):
                 chain, retriever = st.session_state["chain"]
                 sources = retriever.invoke(query)
-                answer = chain.invoke(query)
+                answer = chain.invoke({
+                    "question": query,
+                    "chat_history": st.session_state["chat_history"]
+                })
+                st.session_state["chat_history"].extend([
+                     HumanMessage(content=query),
+                     AIMessage(content=answer)
+                ])
 
             st.write(answer)
 

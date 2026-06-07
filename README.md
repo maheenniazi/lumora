@@ -1,4 +1,4 @@
-# 📚 AI Study Buddy
+# Lumora
 
 Chat with your own course notes using a local LLM and RAG pipeline. Upload any PDF — lecture slides, textbook chapters, your own notes — and ask it questions in plain English. It answers using only your material and shows you exactly which chunk it pulled from.
 
@@ -28,8 +28,8 @@ Chat with your own course notes using a local LLM and RAG pipeline. Upload any P
 ```
 2. Clone the repo and install dependencies:
 ```bash
-   git clone git@github.com:yourusername/ai-study-buddy.git
-   cd ai-study-buddy
+   git clone git@github.com:yourusername/lumora.git
+   cd lumora
    python3 -m venv venv && source venv/bin/activate
    pip install -r requirements.txt
 ```

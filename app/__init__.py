@@ -1,1 +1,1 @@
-touch app/__init__.py
+echo "" > ~/Desktop/lumora/app/__init__.py

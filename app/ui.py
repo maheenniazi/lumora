@@ -41,20 +41,24 @@ with st.sidebar:
         selected_course = None
         st.info("Create a course above to get started.")
 
-    st.divider()
 
     # PDF upload — only shown if a course is selected
     if selected_course:
         st.subheader(f"Upload to {selected_course}")
-        uploaded_file = st.file_uploader("Choose PDFs", type="pdf", accept_multiple_files=True)
+        uploaded_file = st.file_uploader("Choose PDFs or CSVs", type=["pdf", "csv"], accept_multiple_files=True)
         if uploaded_file and st.button("Ingest PDFs"):
             total_chunks = 0
             with st.spinner("Reading and embedding your notes..."):
                 for file in uploaded_file:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                    suffix = ".pdf" if file.name.endswith(".pdf") else ".csv"
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                         tmp.write(file.read())
                         tmp_path = tmp.name
-                    total_chunks += ingest_pdf(tmp_path, selected_course)
+                    if suffix == ".pdf":
+                        total_chunks += ingest_pdf(tmp_path, selected_course)
+                    else:
+                        from ingest import ingest_csv
+                        total_chunks += ingest_csv(tmp_path, selected_course, file.name)
                     os.unlink(tmp_path)
             st.success(f"Done! Ingested {len(uploaded_file)} files, {total_chunks} total chunks.")
             if "chain" in st.session_state:
@@ -167,65 +171,83 @@ with tab2:
             if not chunks:
                 st.warning("No notes found. Upload a PDF first.")
             else:
-                # sort by page so content is in order
+                # sort chunks by page number so notes are in order
                 chunks = sorted(chunks, key=lambda x: x.metadata.get("page", 0))
 
-                # combine all chunks into one block — no batching
+                # combine all chunks with page labels
                 all_text = "\n\n".join([
                     f"[Page {c.metadata.get('page', '?')}]\n{c.page_content}"
                     for c in chunks
                 ])
 
-                # cap at 12000 chars (fits in llama3.2 context window)
-                all_text = all_text[:12000]
+                # cap at 80000 chars — Claude can handle much more than llama3.2
+                all_text = all_text[:80000]
 
-                llm = ChatOllama(model="llama3.2", temperature=0.1, num_ctx=8192)
+                with st.spinner("Generating notes with Claude... ☕"):
+                    import anthropic
+                    import os
+                    from dotenv import load_dotenv
+                    load_dotenv()  # loads the .env file so we can read ANTHROPIC_API_KEY
 
-                prompt = ChatPromptTemplate.from_messages([
-                    ("system", """You are an expert academic note-taker for university students.
-Create ONE set of detailed, well-organized study notes from ALL the lecture content below.
-Do NOT repeat yourself. Each concept, example, and formula should appear exactly once.
-Only use information from the lecture content — do not invent anything.
-Preserve all math notation exactly as written.
+                    client = anthropic.Anthropic(
+                        api_key=os.getenv("ANTHROPIC_API_KEY")
+                    )
 
-FORMAT:
-# {topic}
+                    message = client.messages.create(
+                        model="claude-haiku-4-5",
+                        max_tokens=4096,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": f"""You are an expert academic note-taker for university students.
+Create extremely detailed, well-organized study notes from the lecture content below.
+
+Topic: {note_title}
+
+RULES:
+- Only use information from the lecture content provided
+- Do not invent or add anything not in the content
+- Include every concept, definition, theorem, formula, and example
+- Preserve all math notation exactly as written
+- Be thorough — do not skip anything
+- Each concept and example should appear exactly once
+
+FORMAT YOUR NOTES EXACTLY LIKE THIS:
+
+# {note_title}
 
 ## 📌 Overview
-What this lecture covers in 3-4 sentences.
+Brief summary of what this content covers.
 
 ## 📖 Key Definitions
-- **Term**: definition (one per line)
+- **Term**: definition
 
 ## 🧠 Main Concepts
-### [Concept Name]
-Full explanation. Sub-points as bullets.
+### Concept Name
+Full explanation with all details and sub-points
 
 ## 📐 Formulas & Theorems
-- **Name**: exact formula or theorem statement
+- **Name**: exact formula or theorem statement + conditions
 
 ## ✏️ Worked Examples
-### Example [n]: [brief description]
-Step-by-step exactly as in the lecture.
+### Example 1: [brief description]
+Step-by-step solution exactly as shown in the lecture
 
 ## ⭐ Key Takeaways
 - Most important points, no repetition
 
 Lecture content:
-{content}"""),
-                    ("human", "Generate one complete set of study notes for: {topic}")
-                ])
+{all_text}"""
+                            }
+                        ]
+                    )
 
-                with st.spinner("Generating notes... this takes 1-2 minutes ☕"):
-                    response = (prompt | llm).invoke({
-                        "content": all_text,
-                        "topic": note_title
-                    })
-                    full_notes = response.content
+                    full_notes = message.content[0].text
 
                 st.markdown("---")
                 st.markdown(full_notes)
 
+                # save notes to disk
                 save_notes(selected_course, note_title, full_notes)
                 st.success("✅ Notes saved! Find them in the sidebar anytime.")
 

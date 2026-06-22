@@ -116,3 +116,47 @@ def load_note(course: str, filename: str) -> str:
     filepath = os.path.join(NOTES_DIR, course, filename)
     with open(filepath, "r") as f:
         return f.read()
+
+def ingest_text_chunks(chunks: list, course: str):
+    """
+    Ingests a list of plain text strings into a course's vector store.
+    Used for Notion data which comes as text, not PDFs.
+    """
+    from langchain_core.documents import Document
+
+    # Convert plain text strings into LangChain Document objects
+    documents = [Document(page_content=chunk) for chunk in chunks]
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    split_docs = splitter.split_documents(documents)
+
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    Chroma.from_documents(
+        documents=split_docs,
+        embedding=embeddings,
+        persist_directory=get_chroma_dir(course),
+    )
+
+def ingest_csv(csv_path: str, course: str, source_name: str = ""):
+    """
+    Reads a CSV file and ingests each row as a text chunk.
+    Used for Notion database exports.
+    """
+    import csv
+    chunks = []
+    
+    with open(csv_path, 'r', encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # convert each row to readable text
+            parts = []
+            for key, value in row.items():
+                if value and value.strip():
+                    parts.append(f"{key}: {value.strip()}")
+            if parts:
+                chunks.append("\n".join(parts))
+    
+    if chunks:
+        ingest_text_chunks(chunks, course)
+    
+    return len(chunks)

@@ -1,12 +1,11 @@
 # ui.py — everything the user sees and interacts with
 
 import streamlit as st
-import tempfile, os
+import tempfile
+import os
 from ingest import ingest_pdf, list_courses, get_all_chunks, save_notes, list_notes, load_note
 from rag import build_rag_chain
 from langchain_core.messages import HumanMessage, AIMessage
-from langchain_ollama import ChatOllama
-from langchain_core.prompts import ChatPromptTemplate
 
 st.set_page_config(page_title="Lumora", page_icon="🌙", layout="wide")
 

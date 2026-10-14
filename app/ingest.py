@@ -6,6 +6,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter  # splits te
 from langchain_community.vectorstores import Chroma  # our vector database (stores embeddings)
 from langchain_ollama import OllamaEmbeddings  # converts text into numbers (embeddings)
 import os  # lets us work with files and folders
+from datetime import datetime  # timestamps for saved notes
 
 # this is the main folder where all course notes will be stored
 BASE_DIR = "chroma_db"
@@ -44,7 +45,7 @@ def ingest_pdf(pdf_path: str, course: str):
     # Embeddings turn text into numbers — similar text gets similar numbers
     # This is what lets us search by meaning, not just keywords
     embeddings = OllamaEmbeddings(model="nomic-embed-text")  # separate model just for embeddings
-    vectorstore = Chroma.from_documents(
+    Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
         persist_directory=get_chroma_dir(course),  # save to this course's folder
@@ -86,9 +87,6 @@ def get_all_chunks(course: str, keyword: str = None) -> list:
     # k=100 pulls back as many chunks as possible
     results = vectorstore.similarity_search(query, k=100)
     return results
-
-import json
-from datetime import datetime
 
 NOTES_DIR = "saved_notes"
 

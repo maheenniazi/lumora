@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 *.pdf
 .env
+saved_notes/
+*.zip
+.pytest_cache/

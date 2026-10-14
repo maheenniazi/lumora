@@ -1,0 +1,8 @@
+# Lightweight dependencies for linting and unit tests in CI.
+# The full app dependencies live in requirements.txt.
+langchain-core==1.4.1
+langchain-community==0.4.2
+langchain-text-splitters==1.1.2
+langchain-ollama==1.1.0
+pytest==8.4.2
+ruff==0.14.0

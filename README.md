@@ -1,5 +1,7 @@
 # Lumora
 
+[![CI](https://github.com/maheenniazi/lumora/actions/workflows/ci.yml/badge.svg)](https://github.com/maheenniazi/lumora/actions/workflows/ci.yml)
+
 Chat with your own course notes using a local LLM and RAG pipeline. Upload any PDF — lecture slides, textbook chapters, your own notes — and ask it questions in plain English. It answers using only your material and shows you exactly which chunk it pulled from.
 
 ## Demo
@@ -28,7 +30,7 @@ Chat with your own course notes using a local LLM and RAG pipeline. Upload any P
 ```
 2. Clone the repo and install dependencies:
 ```bash
-   git clone git@github.com:yourusername/lumora.git
+   git clone git@github.com:maheenniazi/lumora.git
    cd lumora
    python3 -m venv venv && source venv/bin/activate
    pip install -r requirements.txt
@@ -36,8 +38,30 @@ Chat with your own course notes using a local LLM and RAG pipeline. Upload any P
 3. Run:
 ```bash
    ollama serve &
-   streamlit run app/ui.py
+   PYTHONPATH=./app streamlit run app/ui.py
 ```
+
+### Run with Docker
+
+Docker Compose starts Lumora and an Ollama server together:
+
+```bash
+docker compose up -d --build
+docker compose exec ollama ollama pull llama3.2
+docker compose exec ollama ollama pull nomic-embed-text
+```
+
+Then open http://localhost:8501. Your courses and saved notes persist in `./chroma_db` and `./saved_notes`. To use the "generate notes" feature, set `ANTHROPIC_API_KEY` in your shell before running `docker compose up`.
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+GitHub Actions runs linting and the test suite on every push and pull request, then builds the Docker image and smoke-tests it.
 
 ## Technical decisions
 

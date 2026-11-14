@@ -6,7 +6,6 @@ from langchain_ollama import ChatOllama  # the local AI model
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder  # structures the prompt
 from langchain_core.output_parsers import StrOutputParser  # converts AI output to plain text
 from langchain_core.runnables import RunnablePassthrough  # passes data through the chain unchanged
-from langchain_core.messages import HumanMessage, AIMessage  # message types for chat history
 from ingest import load_vectorstore  # our function to load a course's notes
 
 def build_rag_chain(course: str):
